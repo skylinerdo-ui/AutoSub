@@ -171,6 +171,7 @@ input[type=color]{width:100%;height:46px;padding:3px;border:1px solid var(--line
       </div>
     </div>
     <p id="modelHint" class="hint"></p>
+    <label class="check"><input type="checkbox" id="cpuOnly">ใช้ CPU เท่านั้น (ช้ากว่า แต่เสถียรกว่า เลือกเมื่อ GPU ถอดเสียงเพี้ยน)</label>
     <div class="field">
       <label for="len">ความยาวซับต่อบรรทัด</label>
       <select id="len">
@@ -449,6 +450,14 @@ function parseSrt(txt) {
   }
   return out;
 }
+function isGarbage(chunks) {
+  const t = chunks.map(c => String(c.text || '')).join('').replace(/\s+/g, '');
+  if (t.length < 6) return false;
+  const counts = {};
+  let max = 0, top = '';
+  for (const ch of t) { counts[ch] = (counts[ch] || 0) + 1; if (counts[ch] > max) { max = counts[ch]; top = ch; } }
+  return max / t.length > 0.8 && !/[\p{L}\p{N}]/u.test(top);
+}
 // </pure>
 
 const $ = id => document.getElementById(id);
@@ -672,6 +681,8 @@ function setJob(text, pct) {
 function showErr(el, msg) { el.textContent = msg; el.hidden = !msg; }
 
 function friendlyError(msg) {
+  if (msg === 'silent') return 'คลิปนี้ไม่มีเสียงหรือเงียบสนิท ลองคลิปอื่นที่มีเสียงพูด';
+  if (msg === 'garbage') return 'ถอดเสียงไม่ได้ผล (ได้แต่ตัวอักษรขยะ) ลองเลือกความแม่นยำรุ่นอื่น ตรวจว่าเลือกภาษาตรงกับเสียงพูด และคลิปมีเสียงพูดชัดพอ';
   if (/memory|alloc|out of/i.test(msg)) return 'หน่วยความจำไม่พอ ลองเลือกความแม่นยำ "เร็ว" หรือใช้คลิปที่สั้นลง';
   if (/fetch|network|load failed|Failed to/i.test(msg)) return 'ดาวน์โหลดโมเดลไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่ (' + msg.slice(0, 120) + ')';
   return 'ถอดเสียงไม่สำเร็จ: ' + msg.slice(0, 200);
@@ -699,7 +710,7 @@ function runWorker(payload) {
       else if (m.type === 'status' && m.text === 'run') { phase = 'run'; setJob('กำลังถอดเสียง…', 2); }
       else if (m.type === 'device') device = m.device;
       else if (m.type === 'chunk') { n = m.n; }
-      else if (m.type === 'result') ok(m.chunks);
+      else if (m.type === 'result') ok({ chunks: m.chunks, device });
       else if (m.type === 'error') fail(new Error(m.message));
     };
     w.onerror = ev => { S.worker = null; fail(new Error((ev && ev.message) || 'โหลดไลบรารีถอดเสียงไม่ได้ ตรวจอินเทอร์เน็ต')); };
@@ -717,10 +728,20 @@ $('go').addEventListener('click', async () => {
       try { S.audio = await extractAudio(S.file); }
       catch (_) { throw new Error('อ่านเสียงจากวิดีโอนี้ไม่ได้ (คลิปอาจไม่มีเสียง หรือไฟล์ใหญ่เกินไป)'); }
     }
+    let peak = 0;
+    for (let i = 0; i < S.audio.length; i += 7) { const a = Math.abs(S.audio[i]); if (a > peak) peak = a; }
+    if (!(peak > 0.001)) throw new Error('silent');
     const model = MODELS[$('model').value];
-    const useGPU = S.gpu;
-    const chunks = await runWorker({ model, useGPU, language: $('lang').value, audio: S.audio.slice() });
-    S.raw = chunks;
+    const lang = $('lang').value;
+    let res = await runWorker({ model, useGPU: S.gpu && !$('cpuOnly').checked, language: lang, audio: S.audio.slice() });
+    if (isGarbage(res.chunks) && res.device === 'webgpu') {
+      try { localStorage.setItem('autosubNoGpu', '1'); } catch (_) {}
+      $('cpuOnly').checked = true;
+      setJob('GPU ถอดเสียงเพี้ยน กำลังลองใหม่ด้วย CPU…', 0);
+      res = await runWorker({ model, useGPU: false, language: lang, audio: S.audio.slice() });
+    }
+    if (isGarbage(res.chunks)) throw new Error('garbage');
+    S.raw = res.chunks;
     resplit();
     $('job').hidden = true;
     if (!S.cues.length) showErr($('jobErr'), 'ไม่พบเสียงพูดในคลิปนี้ ลองเลือกภาษาให้ตรง หรือเพิ่มซับเองในขั้นตอนถัดไป');
@@ -1022,6 +1043,7 @@ if (/claudeusercontent|claude\.ai$/i.test(location.hostname) || location.protoco
 /* ---------- device capability ---------- */
 (async function init() {
   try { S.gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch (_) { S.gpu = false; }
+  try { if (localStorage.getItem('autosubNoGpu') === '1') $('cpuOnly').checked = true; } catch (_) {}
   const hint = $('modelHint');
   if (S.gpu) {
     hint.textContent = 'เครื่องนี้ใช้การ์ดจอเร่งความเร็วได้ (WebGPU) ถอดเสียงได้เร็วขึ้นมาก';
