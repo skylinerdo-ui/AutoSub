@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ซับอัตโนมัติ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Prompt:wght@500;700&family=Kanit:wght@500;700&family=Sarabun:wght@500;700&family=Mitr:wght@400;600&display=swap">
+<style>
+/* Layout: one column, three steps. Step 3 pins the video preview at the top while a tab panel scrolls beneath it. */
+:root{
+  --font-ui:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;
+  --font-display:'Prompt','IBM Plex Sans Thai',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --bg:#F1F2F7;
+  --surface:#FFFFFF;
+  --surface-2:#E8EAF3;
+  --ink:#14162A;
+  --muted:#5B5F7D;
+  --line:#D5D8E7;
+  --accent:#3236D3;
+  --on-accent:#FFFFFF;
+  --mark:#FFD84A;
+  --mark-soft:rgba(255,216,74,.38);
+  --danger:#B3261E;
+  --ok:#17794D;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0F1F; --surface:#171934; --surface-2:#22254A; --ink:#ECEDF7; --muted:#9A9EBC; --line:#2C3057;
+    --accent:#8A8FFF; --on-accent:#0E0F1F; --mark-soft:rgba(255,216,74,.22); --danger:#FF8A80; --ok:#5FD39A;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0F1F; --surface:#171934; --surface-2:#22254A; --ink:#ECEDF7; --muted:#9A9EBC; --line:#2C3057;
+  --accent:#8A8FFF; --on-accent:#0E0F1F; --mark-soft:rgba(255,216,74,.22); --danger:#FF8A80; --ok:#5FD39A;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 var(--font-ui);padding-block:20px 56px;padding-inline:16px}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.2;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.1rem;font-weight:700}
+p{margin:0}
+.lead{color:var(--muted);margin-top:6px;max-width:60ch}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.hint{font-size:.88rem;color:var(--muted)}
+.hint.warn{color:var(--danger)}
+
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.step-h{display:flex;align-items:center;gap:10px}
+.n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:700 .85rem var(--font-display)}
+.step.done .n{background:var(--ok);color:var(--surface)}
+
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:600 1rem var(--font-ui);min-height:48px;padding:0 18px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.sm{min-height:40px;padding:0 12px;font-size:.9rem;border-radius:10px}
+.btn.icon{width:48px;padding:0;flex:none}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.grid2{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label,.lbl{font-size:.86rem;font-weight:500;color:var(--muted)}
+select,input[type=number],textarea{font:400 1rem var(--font-ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;min-height:46px;padding:8px 12px;width:100%;min-width:0}
+textarea{resize:vertical;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--accent);min-height:32px}
+input[type=color]{width:100%;height:46px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+
+.bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.job{display:flex;flex-direction:column;gap:8px}
+.job .row{justify-content:space-between}
+
+/* Step 3 */
+.stage-wrap{position:sticky;top:0;z-index:5;background:var(--surface);padding-block:4px 10px;margin-inline:-4px;padding-inline:4px;display:flex;flex-direction:column;gap:8px}
+.stage{background:#000;border-radius:10px;overflow:hidden;display:flex;justify-content:center}
+#preview{display:block;width:100%;max-height:36vh;object-fit:contain;background:#000}
+.player{display:flex;align-items:center;gap:10px}
+.player .mono{font-size:.82rem;color:var(--muted);white-space:nowrap}
+.sr-video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface-2);padding:4px;border-radius:12px}
+.tab{appearance:none;border:0;background:transparent;color:var(--muted);font:600 .95rem var(--font-ui);min-height:42px;border-radius:9px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+.cues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cue{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:46vh;min-width:0}
+.cue.on{background:var(--mark-soft);border-color:var(--mark)}
+.cue-t{display:flex;align-items:center;gap:6px}
+.cue-t input{width:5.2rem;min-height:38px;padding:4px 8px;font-family:var(--font-mono);font-size:.9rem}
+.cue-t .gap{flex:1}
+.cue textarea{min-height:64px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 .95rem var(--font-ui);min-height:44px;padding:0 14px;border-radius:99px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface-2);padding:4px;border-radius:10px}
+.seg label{display:block;text-align:center;min-height:40px;line-height:40px;border-radius:7px;cursor:pointer;font-size:.92rem;color:var(--muted)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg input:checked+span{display:block;background:var(--surface);color:var(--ink);border-radius:7px;font-weight:600}
+.seg input:focus-visible+span{outline:3px solid var(--accent)}
+.seg label>span{display:block;min-height:40px;line-height:40px}
+.check{display:flex;align-items:center;gap:10px;min-height:44px}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+
+.result{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+.result video{width:100%;max-height:60vh;background:#000;border-radius:10px}
+.note{font-size:.88rem;color:var(--muted);background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.err{color:var(--danger);font-size:.92rem}
+@media (prefers-reduced-motion:reduce){.bar>i{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <p class="note err" id="hostWarn" hidden>หน้านี้เปิดอยู่ในตัวอย่างของแอป Claude ซึ่งบล็อกการโหลดโมเดลและตัวแปลงไฟล์ จึงใช้งานจริงไม่ได้ ต้องอัปโหลดไฟล์ index.html ขึ้นเว็บของคุณเอง (เช่น GitHub Pages) แล้วเปิดจากลิงก์นั้นในเบราว์เซอร์ Chrome</p>
+  <header>
+    <h1>ซับอัตโนมัติ</h1>
+    <p class="lead">ถอดเสียงจากวิดีโอเป็นซับ แก้ไขได้ แล้วฝังลงคลิปให้เลย ทุกอย่างทำงานในเบราว์เซอร์ของคุณ ไฟล์วิดีโอไม่ถูกอัปโหลดไปที่ไหน</p>
+  </header>
+
+  <section class="step" id="s1">
+    <div class="step-h"><span class="n">1</span><h2>เลือกวิดีโอ</h2></div>
+    <div class="row">
+      <label class="btn primary" for="file">เลือกวิดีโอจากเครื่อง</label>
+      <input type="file" id="file" accept="video/*" hidden>
+    </div>
+    <p id="fileInfo" class="hint">รองรับไฟล์จากกล้องมือถือ (MP4 / MOV) แนะนำคลิปไม่เกินประมาณ 10 นาที</p>
+    <div id="conv" class="job" hidden>
+      <p class="note">ไฟล์ HEVC (H.265) เปิดได้เฉพาะบางเครื่อง ถ้าเครื่องนี้เปิดไม่ได้ กดแปลงเป็น H.264 ในเครื่องได้ (ลดเหลือ 720p) แต่ช้า เพราะถอดรหัสด้วยซอฟต์แวร์ ควรใช้กับคลิปสั้น และต้องโหลดตัวแปลงไฟล์ราว 30 MB</p>
+      <div class="row"><button class="btn primary" id="convBtn" type="button">แปลงเป็น H.264 ในเครื่อง</button></div>
+      <div id="convJob" hidden aria-live="polite">
+        <div class="row"><span id="convText"></span><button class="btn sm" id="convCancel" type="button">ยกเลิก</button></div>
+        <div class="bar"><i id="convBar"></i></div>
+      </div>
+      <p id="convErr" class="err" hidden></p>
+    </div>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="step-h"><span class="n">2</span><h2>สร้างซับ</h2></div>
+    <div class="grid2">
+      <div class="field">
+        <label for="lang">ภาษาที่พูดในคลิป</label>
+        <select id="lang">
+          <option value="thai" selected>ไทย</option>
+          <option value="english">อังกฤษ</option>
+          <option value="chinese">จีน</option>
+          <option value="japanese">ญี่ปุ่น</option>
+          <option value="korean">เกาหลี</option>
+          <option value="">ให้ระบบเดาเอง</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="model">ความแม่นยำ</label>
+        <select id="model">
+          <option value="base">เร็ว (base)</option>
+          <option value="small" selected>สมดุล (small)</option>
+          <option value="turbo">แม่นที่สุด (large-v3-turbo)</option>
+        </select>
+      </div>
+    </div>
+    <p id="modelHint" class="hint"></p>
+    <div class="field">
+      <label for="len">ความยาวซับต่อบรรทัด</label>
+      <select id="len">
+        <option value="short">สั้น (คลิปแนวตั้ง ตัวใหญ่)</option>
+        <option value="mid" selected>กลาง</option>
+        <option value="long">ยาว (คลิปแนวนอน)</option>
+      </select>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="go" disabled>สร้างซับอัตโนมัติ</button>
+      <label class="btn" for="srtIn" id="srtLabel">มีไฟล์ .srt อยู่แล้ว</label>
+      <input type="file" id="srtIn" accept=".srt,text/plain" hidden>
+    </div>
+    <div class="job" id="job" hidden aria-live="polite">
+      <div class="row"><span id="jobText"></span><button class="btn sm" id="jobCancel">ยกเลิก</button></div>
+      <div class="bar"><i id="jobBar"></i></div>
+    </div>
+    <p id="jobErr" class="err" hidden></p>
+    <p class="hint">ครั้งแรกต้องดาวน์โหลดโมเดลเสียงลงเครื่อง (หลายร้อย MB ควรใช้ Wi-Fi) หลังจากนั้นเบราว์เซอร์จะเก็บไว้ ครั้งต่อไปไม่ต้องโหลดซ้ำ</p>
+  </section>
+
+  <section class="step" id="s3" hidden>
+    <div class="step-h"><span class="n">3</span><h2>แก้ไขและบันทึก</h2></div>
+
+    <div class="stage-wrap">
+      <div class="stage"><canvas id="preview" width="640" height="360" aria-label="ตัวอย่างวิดีโอพร้อมซับ"></canvas></div>
+      <div class="player">
+        <button class="btn icon" id="play" type="button" aria-label="เล่นหรือหยุด">
+          <svg id="icoPlay" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3.5v13l11-6.5z"/></svg>
+          <svg id="icoPause" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" hidden><path d="M5 3.5h3.6v13H5zM11.4 3.5H15v13h-3.6z"/></svg>
+        </button>
+        <input type="range" id="seek" min="0" max="1" step="0.01" value="0" aria-label="เลื่อนตำแหน่งวิดีโอ">
+        <span class="mono" id="tc">0:00 / 0:00</span>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="เมนูแก้ไข">
+      <button class="tab" role="tab" id="tab-text" aria-controls="p-text" aria-selected="true">ข้อความ</button>
+      <button class="tab" role="tab" id="tab-style" aria-controls="p-style" aria-selected="false">สไตล์</button>
+      <button class="tab" role="tab" id="tab-out" aria-controls="p-out" aria-selected="false">บันทึก</button>
+    </div>
+
+    <div class="panel" id="p-text" role="tabpanel" aria-labelledby="tab-text">
+      <div class="row">
+        <button class="btn sm" id="addCue" type="button">+ เพิ่มซับตรงเวลานี้</button>
+        <span class="lbl">เลื่อนเวลาซับทั้งหมด</span>
+        <button class="btn sm" id="shiftBack" type="button" aria-label="เลื่อนซับให้เร็วขึ้น 0.2 วินาที">−0.2 วิ</button>
+        <button class="btn sm" id="shiftFwd" type="button" aria-label="เลื่อนซับให้ช้าลง 0.2 วินาที">+0.2 วิ</button>
+      </div>
+      <ol class="cues" id="cues"></ol>
+      <div class="row">
+        <button class="btn sm" id="resplit" type="button">ตัดบรรทัดใหม่ (ล้างที่แก้)</button>
+        <button class="btn sm" id="dlSrt" type="button">ดาวน์โหลด .srt</button>
+      </div>
+    </div>
+
+    <div class="panel" id="p-style" role="tabpanel" aria-labelledby="tab-style" hidden>
+      <div class="field">
+        <span class="lbl">สไตล์สำเร็จรูป</span>
+        <div class="chips">
+          <button class="chip" type="button" data-preset="classic">ขาว ขอบดำ</button>
+          <button class="chip" type="button" data-preset="yellow">เหลืองหนา</button>
+          <button class="chip" type="button" data-preset="box">พื้นดำ</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="font">ฟอนต์</label>
+        <select id="font">
+          <option value="Prompt">Prompt</option>
+          <option value="Kanit">Kanit</option>
+          <option value="Sarabun">Sarabun</option>
+          <option value="Mitr">Mitr</option>
+          <option value="IBM Plex Sans Thai">IBM Plex Sans Thai</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="size">ขนาดตัวอักษร</label>
+        <input type="range" id="size" min="3" max="11" step="0.2" value="6.2">
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="color">สีตัวอักษร</label><input type="color" id="color" value="#ffffff"></div>
+        <div class="field"><label for="ocolor">สีขอบ</label><input type="color" id="ocolor" value="#000000"></div>
+      </div>
+      <div class="field">
+        <label for="outline">ความหนาขอบ</label>
+        <input type="range" id="outline" min="0" max="14" step="1" value="8">
+      </div>
+      <label class="check"><input type="checkbox" id="bold" checked>ตัวหนา</label>
+      <label class="check"><input type="checkbox" id="box">พื้นหลังกล่องดำหลังตัวอักษร</label>
+      <div class="field">
+        <span class="lbl">ตำแหน่ง</span>
+        <div class="seg" role="radiogroup" aria-label="ตำแหน่งซับ">
+          <label><input type="radio" name="pos" value="top"><span>บน</span></label>
+          <label><input type="radio" name="pos" value="middle"><span>กลาง</span></label>
+          <label><input type="radio" name="pos" value="bottom" checked><span>ล่าง</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="offset">ระยะห่างจากขอบ</label>
+        <input type="range" id="offset" min="2" max="40" step="1" value="12">
+      </div>
+    </div>
+
+    <div class="panel" id="p-out" role="tabpanel" aria-labelledby="tab-out" hidden>
+      <div class="field">
+        <label for="outRes">ขนาดวิดีโอที่ได้</label>
+        <select id="outRes">
+          <option value="720">720p (ไฟล์เล็ก)</option>
+          <option value="1080" selected>1080p</option>
+        </select>
+      </div>
+      <p class="note">การฝังซับทำโดยเล่นวิดีโอแล้วบันทึกซ้ำ จึงใช้เวลาเท่ากับความยาวคลิป ระหว่างนั้นให้เปิดหน้านี้ค้างไว้และอย่าล็อกหน้าจอหรือสลับไปแอปอื่น</p>
+      <button class="btn primary" id="burn" type="button">สร้างวิดีโอพร้อมซับ</button>
+      <div class="job" id="burnJob" hidden aria-live="polite">
+        <div class="row"><span id="burnText"></span><button class="btn sm" id="burnCancel" type="button">ยกเลิก</button></div>
+        <div class="bar"><i id="burnBar"></i></div>
+      </div>
+      <p id="burnErr" class="err" hidden></p>
+      <div class="result" id="result" hidden>
+        <video id="outVideo" controls playsinline></video>
+        <p class="hint" id="outInfo"></p>
+        <div class="row">
+          <button class="btn primary" id="save" type="button">บันทึกวิดีโอ</button>
+          <button class="btn" id="share" type="button" hidden>แชร์ / เก็บลงแกลเลอรี</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<video id="vid" class="sr-video" playsinline preload="auto"></video>
+
+<!-- Transcription runs in a Web Worker so the page stays responsive. __TF__ is replaced at runtime. -->
+<script id="worker-src" type="text/plain">
+import { pipeline, env } from '__TF__';
+env.allowLocalModels = false;
+let cache = { key: null, pipe: null, device: null };
+
+self.onmessage = async (e) => {
+  const m = e.data;
+  try {
+    const key = m.model.id + '|' + m.useGPU;
+    if (cache.key !== key) {
+      try { if (cache.pipe && cache.pipe.dispose) await cache.pipe.dispose(); } catch (_) {}
+      cache = { key: null, pipe: null, device: null };
+      const files = {};
+      const progress_callback = (p) => {
+        if (p.status === 'progress' && p.total) {
+          files[p.file] = { l: p.loaded, t: p.total };
+          let l = 0, t = 0;
+          for (const k in files) { l += files[k].l; t += files[k].t; }
+          self.postMessage({ type: 'download', loaded: l, total: t });
+        }
+      };
+      const tries = m.useGPU
+        ? [{ device: 'webgpu', dtype: m.model.gpuDtype }, { device: 'wasm' }]
+        : [{ device: 'wasm' }];
+      let pipe = null, device = null, lastErr = null;
+      for (const t of tries) {
+        try {
+          self.postMessage({ type: 'status', text: 'load' });
+          pipe = await pipeline('automatic-speech-recognition', m.model.id, Object.assign({}, t, { progress_callback }));
+          device = t.device;
+          break;
+        } catch (err) { lastErr = err; }
+      }
+      if (!pipe) throw lastErr || new Error('โหลดโมเดลไม่สำเร็จ');
+      cache = { key, pipe, device };
+    }
+    self.postMessage({ type: 'device', device: cache.device });
+    self.postMessage({ type: 'status', text: 'run' });
+    let n = 0;
+    const out = await cache.pipe(m.audio, {
+      language: m.language || undefined,
+      task: 'transcribe',
+      return_timestamps: true,
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      chunk_callback: () => { n++; self.postMessage({ type: 'chunk', n }); }
+    });
+    const chunks = out.chunks && out.chunks.length ? out.chunks : [{ text: out.text || '', timestamp: [0, null] }];
+    self.postMessage({ type: 'result', chunks });
+  } catch (err) {
+    self.postMessage({ type: 'error', message: String((err && err.message) || err) });
+  }
+};
+</script>
+
+<script>
+'use strict';
+const TF_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1';
+const MODELS = {
+  base:  { id: 'onnx-community/whisper-base',           gpuDtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } },
+  small: { id: 'onnx-community/whisper-small',          gpuDtype: { encoder_model: 'fp32', decoder_model_merged: 'q4' } },
+  turbo: { id: 'onnx-community/whisper-large-v3-turbo', gpuDtype: { encoder_model: 'fp16', decoder_model_merged: 'q4' } }
+};
+const LEN = { short: { chars: 14, lines: 1 }, mid: { chars: 22, lines: 2 }, long: { chars: 34, lines: 2 } };
+
+// <pure>
+const pad = (n, l = 2) => String(n).padStart(l, '0');
+const SEG = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('th', { granularity: 'word' }) : null;
+
+function tokens(s) {
+  if (SEG) return Array.from(SEG.segment(s), x => x.segment);
+  return s.match(/[฀-๿]|[^\s฀-๿]+\s*|\s+/g) || [];
+}
+function vlen(s) { return s.replace(/[ัิ-ฺ็-๎]/g, '').length; }
+
+function wrapText(text, maxChars) {
+  const lines = [];
+  let line = '';
+  for (const t of tokens(text)) {
+    const next = line + t;
+    if (line.trim() && vlen(next.trimEnd()) > maxChars) { lines.push(line.trim()); line = t.trimStart(); }
+    else line = next;
+  }
+  if (line.trim()) lines.push(line.trim());
+  return lines;
+}
+
+function buildCues(chunks, dur, maxChars, maxLines) {
+  const cues = [];
+  let prev = '', repeat = 0;
+  for (const c of chunks) {
+    const text = String(c.text || '').replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    if (text === prev) { repeat++; if (repeat >= 2) continue; } else { repeat = 0; prev = text; }
+    const ts = c.timestamp || [0, null];
+    let s = Math.max(0, +ts[0] || 0);
+    let e = ts[1];
+    if (e == null || !(e > s)) e = s + Math.max(2, vlen(text) * 0.09);
+    if (dur) { e = Math.min(e, dur); s = Math.min(s, Math.max(0, e - 0.4)); }
+    const lines = wrapText(text, maxChars);
+    const groups = [];
+    for (let i = 0; i < lines.length; i += maxLines) groups.push(lines.slice(i, i + maxLines).join('\n'));
+    const weights = groups.map(g => Math.max(1, g.replace(/\s/g, '').length));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let t = s;
+    groups.forEach((g, i) => {
+      const share = (e - s) * weights[i] / total;
+      cues.push({ start: t, end: t + share, text: g });
+      t += share;
+    });
+  }
+  for (let i = 0; i < cues.length - 1; i++) {
+    if (cues[i].end > cues[i + 1].start) cues[i].end = Math.max(cues[i].start + 0.2, cues[i + 1].start);
+  }
+  return cues;
+}
+
+function srtTime(t) {
+  const ms = Math.round(Math.max(0, t) * 1000);
+  const h = Math.floor(ms / 3600000), m = Math.floor(ms % 3600000 / 60000), s = Math.floor(ms % 60000 / 1000), r = ms % 1000;
+  return pad(h) + ':' + pad(m) + ':' + pad(s) + ',' + pad(r, 3);
+}
+function clock(t) {
+  t = Math.max(0, t || 0);
+  return Math.floor(t / 60) + ':' + pad(Math.floor(t % 60));
+}
+function toSrt(cues) {
+  return cues.filter(c => c.text.trim()).map((c, i) =>
+    (i + 1) + '\n' + srtTime(c.start) + ' --> ' + srtTime(c.end) + '\n' + c.text.trim() + '\n').join('\n');
+}
+function parseSrt(txt) {
+  const out = [];
+  txt = txt.replace(/\r/g, '').replace(/^﻿/, '');
+  for (const block of txt.split(/\n{2,}/)) {
+    const L = block.split('\n').filter(x => x.trim() !== '');
+    const idx = L.findIndex(l => l.includes('-->'));
+    if (idx < 0) continue;
+    const m = L[idx].match(/(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)/);
+    if (!m) continue;
+    const sec = (h, mi, s, f) => (+h) * 3600 + (+mi) * 60 + (+s) + parseFloat('0.' + f);
+    const text = L.slice(idx + 1).join('\n').replace(/<[^>]+>/g, '').trim();
+    if (text) out.push({ start: sec(m[1], m[2], m[3], m[4]), end: sec(m[5], m[6], m[7], m[8]), text });
+  }
+  return out;
+}
+// </pure>
+
+const $ = id => document.getElementById(id);
+const S = { file: null, url: null, dur: 0, vw: 0, vh: 0, audio: null, raw: [], cues: [], worker: null, active: -1, outUrl: null, gpu: false, cancel: null, burnCancel: null };
+const style = { font: 'Prompt', size: 6.2, bold: true, color: '#ffffff', ocolor: '#000000', outline: 8, box: false, pos: 'bottom', offset: 12 };
+const vid = $('vid');
+
+/* ---------- drawing ---------- */
+function cueAt(t) {
+  for (const c of S.cues) if (t >= c.start && t < c.end) return c;
+  return null;
+}
+function wrapCanvas(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const t of tokens(para)) {
+      const test = line + t;
+      if (line.trim() && ctx.measureText(test.trimEnd()).width > maxW) { out.push(line.trim()); line = t.trimStart(); }
+      else line = test;
+    }
+    if (line.trim()) out.push(line.trim());
+  }
+  return out;
+}
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+function drawCue(ctx, text, w, h) {
+  const fs = Math.max(10, Math.round(Math.min(w, h) * style.size / 100));
+  ctx.save();
+  ctx.font = (style.bold ? 700 : 500) + ' ' + fs + 'px "' + style.font + '","Prompt","Sarabun","Noto Sans Thai",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+  const lines = wrapCanvas(ctx, text, w * 0.9);
+  if (!lines.length) { ctx.restore(); return; }
+  const lh = fs * 1.38, blockH = lines.length * lh, off = h * style.offset / 100;
+  const top = style.pos === 'top' ? off : style.pos === 'middle' ? (h - blockH) / 2 : h - off - blockH;
+  const x = w / 2;
+  lines.forEach((ln, i) => {
+    const y0 = top + i * lh, base = y0 + lh * 0.74;
+    if (style.box) {
+      const tw = ctx.measureText(ln).width, p = fs * 0.34;
+      ctx.fillStyle = 'rgba(0,0,0,0.62)';
+      rrect(ctx, x - tw / 2 - p, y0 + lh * 0.04, tw + p * 2, lh * 0.92, fs * 0.22);
+    }
+    if (style.outline > 0) {
+      ctx.lineWidth = fs * style.outline / 25;
+      ctx.strokeStyle = style.ocolor;
+      ctx.strokeText(ln, x, base);
+    }
+    ctx.fillStyle = style.color;
+    ctx.fillText(ln, x, base);
+  });
+  ctx.restore();
+}
+async function ensureFont() {
+  const sample = S.cues.map(c => c.text).join('') + 'กขคงจชซดตนบปมยรลวสหอฮะาิีึืุูเแโใไ่้๊๋์';
+  try { await document.fonts.load((style.bold ? 700 : 500) + ' 40px "' + style.font + '"', sample.slice(0, 3000)); } catch (_) {}
+}
+function drawPreview() {
+  if (!S.url || !S.vw) return;
+  const c = $('preview');
+  const sc = Math.min(1, 960 / Math.max(S.vw, S.vh));
+  const w = Math.round(S.vw * sc), h = Math.round(S.vh * sc);
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const ctx = c.getContext('2d');
+  ctx.drawImage(vid, 0, 0, w, h);
+  const cue = cueAt(vid.currentTime);
+  if (cue) drawCue(ctx, cue.text, w, h);
+}
+
+/* ---------- file ---------- */
+function resetAll() {
+  if (S.url) URL.revokeObjectURL(S.url);
+  if (S.outUrl) URL.revokeObjectURL(S.outUrl);
+  Object.assign(S, { file: null, url: null, dur: 0, vw: 0, vh: 0, audio: null, raw: [], cues: [], active: -1, outUrl: null });
+  vid.pause(); vid.removeAttribute('src'); vid.load();
+  $('s3').hidden = true; $('result').hidden = true; $('s1').classList.remove('done'); $('s2').classList.remove('done');
+  $('jobErr').hidden = true; $('burnErr').hidden = true;
+}
+$('file').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (f) loadVideo(f, false);
+});
+
+async function loadVideo(f, converted) {
+  resetAll();
+  $('conv').hidden = true;
+  S.file = f; S.url = URL.createObjectURL(f);
+  if (!converted) S.orig = f;
+  $('fileInfo').className = 'hint'; $('fileInfo').textContent = 'กำลังอ่านไฟล์…';
+  $('go').disabled = true;
+  try {
+    await new Promise((res, rej) => {
+      vid.onloadedmetadata = res;
+      vid.onerror = () => rej(new Error('bad'));
+      vid.src = S.url;
+    });
+    S.dur = vid.duration; S.vw = vid.videoWidth; S.vh = vid.videoHeight;
+    if (!S.vw) throw new Error('bad');
+    $('fileInfo').textContent = f.name + ' · ' + clock(S.dur) + ' นาที · ' + S.vw + '×' + S.vh + ' · ' + (f.size / 1048576).toFixed(1) + ' MB' + (converted ? ' · แปลงเป็น H.264 แล้ว' : '');
+    if (f.size > 600 * 1048576 || S.dur > 20 * 60) {
+      $('fileInfo').textContent += ' · ไฟล์ใหญ่ อาจหน่วยความจำไม่พอบนมือถือ ลองตัดให้สั้นลงก่อน';
+      $('fileInfo').className = 'hint warn';
+    }
+    $('s1').classList.add('done');
+    $('go').disabled = false;
+    vid.currentTime = 0.001;
+  } catch (_) {
+    $('fileInfo').className = 'hint warn';
+    $('fileInfo').textContent = converted
+      ? 'แปลงไฟล์แล้วแต่ยังเปิดไม่ได้ ลองไฟล์อื่น'
+      : 'เบราว์เซอร์เปิดวิดีโอนี้ไม่ได้ ส่วนใหญ่เกิดจากไฟล์ HEVC (H.265) ที่เครื่องนี้ไม่มีตัวถอดรหัส';
+    if (!converted) { $('conv').hidden = false; $('convBtn').disabled = false; $('convJob').hidden = true; showErr($('convErr'), ''); }
+  }
+}
+
+/* ---------- HEVC fallback: convert to H.264 with ffmpeg.wasm ---------- */
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error('โหลดตัวแปลงไฟล์ไม่ได้ ตรวจอินเทอร์เน็ต'));
+    document.head.appendChild(s);
+  });
+}
+const FF_BASE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/';
+async function getFFmpeg() {
+  if (S.ff) return S.ff;
+  await loadScript(FF_BASE + 'ffmpeg@0.12.10/dist/umd/ffmpeg.js');
+  await loadScript(FF_BASE + 'util@0.12.1/dist/umd/index.js');
+  const { FFmpeg } = window.FFmpegWASM, { toBlobURL } = window.FFmpegUtil;
+  const ff = new FFmpeg();
+  await ff.load({
+    classWorkerURL: await toBlobURL(FF_BASE + 'ffmpeg@0.12.10/dist/umd/814.ffmpeg.js', 'text/javascript'),
+    coreURL: await toBlobURL(FF_BASE + 'core@0.12.6/dist/umd/ffmpeg-core.js', 'text/javascript'),
+    wasmURL: await toBlobURL(FF_BASE + 'core@0.12.6/dist/umd/ffmpeg-core.wasm', 'application/wasm')
+  });
+  S.ff = ff;
+  return ff;
+}
+$('convBtn').addEventListener('click', async () => {
+  const src = S.orig;
+  if (!src) return;
+  showErr($('convErr'), '');
+  $('convBtn').disabled = true; $('convJob').hidden = false;
+  $('convText').textContent = 'กำลังโหลดตัวแปลงไฟล์…'; $('convBar').style.width = '0%';
+  let ff = null, cancelled = false;
+  S.convCancel = () => { cancelled = true; try { if (ff) ff.terminate(); } catch (_) {} S.ff = null; };
+  try {
+    ff = await getFFmpeg();
+    ff.on('progress', ({ progress }) => {
+      const p = Math.max(0, Math.min(1, progress || 0));
+      $('convText').textContent = 'กำลังแปลงไฟล์ ' + Math.round(p * 100) + '%';
+      $('convBar').style.width = (p * 100) + '%';
+    });
+    $('convText').textContent = 'กำลังอ่านไฟล์เข้าตัวแปลง…';
+    await ff.writeFile('in.vid', new Uint8Array(await src.arrayBuffer()));
+    $('convText').textContent = 'กำลังแปลงไฟล์ 0%';
+    const code = await ff.exec(['-i', 'in.vid',
+      '-vf', "scale=w='if(gt(iw,ih),-2,720)':h='if(gt(iw,ih),720,-2)'",
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', 'out.mp4']);
+    if (code !== 0) throw new Error('ตัวแปลงไฟล์ล้มเหลว');
+    const data = await ff.readFile('out.mp4');
+    try { await ff.deleteFile('in.vid'); await ff.deleteFile('out.mp4'); } catch (_) {}
+    const out = new File([data], src.name.replace(/\.[^.]+$/, '') + '_h264.mp4', { type: 'video/mp4' });
+    $('convJob').hidden = true;
+    await loadVideo(out, true);
+  } catch (err) {
+    $('convJob').hidden = true; $('convBtn').disabled = false;
+    if (!cancelled) showErr($('convErr'), 'แปลงไฟล์ไม่สำเร็จ: ' + String(err.message || err).slice(0, 160) + ' (ไฟล์ใหญ่หรือหน่วยความจำมือถือไม่พออาจเป็นสาเหตุ ลองตัดคลิปให้สั้นลง)');
+  }
+});
+$('convCancel').addEventListener('click', () => { if (S.convCancel) S.convCancel(); $('convJob').hidden = true; $('convBtn').disabled = false; });
+
+/* ---------- audio ---------- */
+async function extractAudio(file) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx;
+  try { ctx = new AC({ sampleRate: 16000 }); } catch (_) { ctx = new AC(); }
+  let buf = await file.arrayBuffer();
+  const decoded = await new Promise((res, rej) => {
+    const p = ctx.decodeAudioData(buf, res, rej);
+    if (p && p.catch) p.catch(rej);
+  });
+  buf = null;
+  let mono;
+  if (decoded.sampleRate === 16000) {
+    const n = decoded.numberOfChannels, len = decoded.length;
+    mono = new Float32Array(len);
+    for (let c = 0; c < n; c++) {
+      const d = decoded.getChannelData(c);
+      for (let i = 0; i < len; i++) mono[i] += d[i] / n;
+    }
+  } else {
+    const off = new OfflineAudioContext(1, Math.ceil(decoded.duration * 16000), 16000);
+    const src = off.createBufferSource();
+    src.buffer = decoded; src.connect(off.destination); src.start();
+    mono = (await off.startRendering()).getChannelData(0);
+  }
+  try { ctx.close(); } catch (_) {}
+  return mono;
+}
+
+/* ---------- transcription ---------- */
+function spawnWorker() {
+  const src = $('worker-src').textContent.replace('__TF__', TF_URL);
+  const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+  return new Worker(url, { type: 'module' });
+}
+function setJob(text, pct) {
+  $('job').hidden = false;
+  $('jobText').textContent = text;
+  if (pct != null) $('jobBar').style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function showErr(el, msg) { el.textContent = msg; el.hidden = !msg; }
+
+function friendlyError(msg) {
+  if (/memory|alloc|out of/i.test(msg)) return 'หน่วยความจำไม่พอ ลองเลือกความแม่นยำ "เร็ว" หรือใช้คลิปที่สั้นลง';
+  if (/fetch|network|load failed|Failed to/i.test(msg)) return 'ดาวน์โหลดโมเดลไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่ (' + msg.slice(0, 120) + ')';
+  return 'ถอดเสียงไม่สำเร็จ: ' + msg.slice(0, 200);
+}
+
+function runWorker(payload) {
+  return new Promise((resolve, reject) => {
+    const w = S.worker || (S.worker = spawnWorker());
+    const started = Date.now();
+    let phase = 'load', n = 0, device = '';
+    const expected = Math.max(1, Math.ceil(S.dur / 20));
+    const tick = setInterval(() => {
+      if (phase === 'run') {
+        const el = Math.round((Date.now() - started) / 1000);
+        setJob('กำลังถอดเสียง' + (device === 'webgpu' ? ' (GPU)' : ' (CPU)') + ' · ผ่านไป ' + clock(el), n ? Math.min(95, n / expected * 100) : null);
+      }
+    }, 1000);
+    const done = fn => v => { clearInterval(tick); S.cancel = null; fn(v); };
+    const ok = done(resolve), fail = done(reject);
+    S.cancel = () => { try { w.terminate(); } catch (_) {} S.worker = null; fail(new Error('cancelled')); };
+    w.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 'download') setJob('กำลังดาวน์โหลดโมเดล ' + Math.round(m.loaded / 1048576) + ' / ' + Math.round(m.total / 1048576) + ' MB', m.loaded / m.total * 100);
+      else if (m.type === 'status' && m.text === 'load') setJob('กำลังเตรียมโมเดล…', null);
+      else if (m.type === 'status' && m.text === 'run') { phase = 'run'; setJob('กำลังถอดเสียง…', 2); }
+      else if (m.type === 'device') device = m.device;
+      else if (m.type === 'chunk') { n = m.n; }
+      else if (m.type === 'result') ok(m.chunks);
+      else if (m.type === 'error') fail(new Error(m.message));
+    };
+    w.onerror = ev => { S.worker = null; fail(new Error((ev && ev.message) || 'โหลดไลบรารีถอดเสียงไม่ได้ ตรวจอินเทอร์เน็ต')); };
+    w.postMessage(payload, [payload.audio.buffer]);
+  });
+}
+
+$('go').addEventListener('click', async () => {
+  if (!S.file) return;
+  showErr($('jobErr'), '');
+  $('go').disabled = true;
+  try {
+    if (!S.audio) {
+      setJob('กำลังแยกเสียงจากวิดีโอ…', 1);
+      try { S.audio = await extractAudio(S.file); }
+      catch (_) { throw new Error('อ่านเสียงจากวิดีโอนี้ไม่ได้ (คลิปอาจไม่มีเสียง หรือไฟล์ใหญ่เกินไป)'); }
+    }
+    const model = MODELS[$('model').value];
+    const useGPU = S.gpu;
+    const chunks = await runWorker({ model, useGPU, language: $('lang').value, audio: S.audio.slice() });
+    S.raw = chunks;
+    resplit();
+    $('job').hidden = true;
+    if (!S.cues.length) showErr($('jobErr'), 'ไม่พบเสียงพูดในคลิปนี้ ลองเลือกภาษาให้ตรง หรือเพิ่มซับเองในขั้นตอนถัดไป');
+    $('s2').classList.add('done');
+    openEditor();
+  } catch (err) {
+    $('job').hidden = true;
+    if (err.message !== 'cancelled') showErr($('jobErr'), friendlyError(err.message));
+  } finally {
+    $('go').disabled = false;
+  }
+});
+$('jobCancel').addEventListener('click', () => { if (S.cancel) S.cancel(); });
+
+function resplit() {
+  const cfg = LEN[$('len').value];
+  S.cues = buildCues(S.raw, S.dur, cfg.chars, cfg.lines);
+  renderCues();
+}
+
+$('srtIn').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f || !S.file) return;
+  const cues = parseSrt(await f.text());
+  if (!cues.length) { showErr($('jobErr'), 'อ่านไฟล์ .srt นี้ไม่ได้'); return; }
+  showErr($('jobErr'), '');
+  S.raw = []; S.cues = cues;
+  $('s2').classList.add('done');
+  renderCues(); openEditor();
+});
+
+/* ---------- editor ---------- */
+function openEditor() {
+  $('s3').hidden = false;
+  $('seek').max = S.dur || 1;
+  renderCues();
+  drawPreview();
+  ensureFont().then(drawPreview);
+  $('s3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+const ICON_X = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>';
+const ICON_GO = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 3.5v13l11-6.5z"/></svg>';
+
+function renderCues() {
+  const ol = $('cues');
+  ol.innerHTML = '';
+  S.active = -1;
+  S.cues.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.className = 'cue'; li.dataset.i = i;
+    li.innerHTML =
+      '<div class="cue-t">' +
+        '<button class="btn sm icon" type="button" data-act="seek" aria-label="ไปที่ซับนี้">' + ICON_GO + '</button>' +
+        '<input type="number" step="0.1" min="0" data-k="start" aria-label="เริ่ม (วินาที)">' +
+        '<span aria-hidden="true">→</span>' +
+        '<input type="number" step="0.1" min="0" data-k="end" aria-label="จบ (วินาที)">' +
+        '<span class="gap"></span>' +
+        '<button class="btn sm icon" type="button" data-act="del" aria-label="ลบซับนี้">' + ICON_X + '</button>' +
+      '</div>' +
+      '<textarea rows="2" data-k="text" aria-label="ข้อความซับ"></textarea>';
+    li.querySelector('[data-k=start]').value = c.start.toFixed(1);
+    li.querySelector('[data-k=end]').value = c.end.toFixed(1);
+    li.querySelector('textarea').value = c.text;
+    ol.appendChild(li);
+  });
+  if (!S.cues.length) ol.innerHTML = '<li class="hint">ยังไม่มีซับ กด "+ เพิ่มซับตรงเวลานี้" เพื่อเริ่มพิมพ์เอง</li>';
+}
+$('cues').addEventListener('input', e => {
+  const li = e.target.closest('.cue'); if (!li) return;
+  const c = S.cues[+li.dataset.i], k = e.target.dataset.k;
+  if (k === 'text') c.text = e.target.value;
+  else if (k) { const v = parseFloat(e.target.value); if (!isNaN(v)) c[k] = Math.max(0, v); }
+  drawPreview();
+});
+$('cues').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const li = b.closest('.cue'), i = +li.dataset.i;
+  if (b.dataset.act === 'seek') { vid.pause(); vid.currentTime = Math.min(S.dur, S.cues[i].start + 0.05); }
+  if (b.dataset.act === 'del') { S.cues.splice(i, 1); renderCues(); drawPreview(); }
+});
+$('addCue').addEventListener('click', () => {
+  const t = vid.currentTime || 0;
+  const c = { start: t, end: Math.min(S.dur || t + 2, t + 2), text: 'ข้อความซับ' };
+  let at = S.cues.findIndex(x => x.start > t);
+  if (at < 0) at = S.cues.length;
+  S.cues.splice(at, 0, c);
+  renderCues(); drawPreview();
+  const ta = $('cues').children[at] && $('cues').children[at].querySelector('textarea');
+  if (ta) { ta.focus(); ta.select(); }
+});
+function shiftAll(d) {
+  S.cues.forEach(c => { c.start = Math.max(0, c.start + d); c.end = Math.max(c.start + 0.1, c.end + d); });
+  renderCues(); drawPreview();
+}
+$('shiftBack').addEventListener('click', () => shiftAll(-0.2));
+$('shiftFwd').addEventListener('click', () => shiftAll(0.2));
+$('resplit').addEventListener('click', () => {
+  if (!S.raw.length) { showErr($('jobErr'), 'ตัดบรรทัดใหม่ได้เฉพาะซับที่สร้างจากเสียง'); return; }
+  resplit(); drawPreview();
+});
+$('dlSrt').addEventListener('click', () => {
+  saveBlob(new Blob(['﻿' + toSrt(S.cues)], { type: 'text/plain;charset=utf-8' }), baseName() + '.srt');
+});
+function baseName() { return (S.file ? S.file.name.replace(/\.[^.]+$/, '') : 'video'); }
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+/* ---------- player ---------- */
+let raf = 0, lastTc = '';
+function setPlayIcon(playing) { $('icoPlay').hidden = playing; $('icoPause').hidden = !playing; }
+function syncTime() {
+  const t = vid.currentTime || 0;
+  const tc = clock(t) + ' / ' + clock(S.dur);
+  if (tc !== lastTc) { $('tc').textContent = tc; lastTc = tc; }
+  if (document.activeElement !== $('seek')) $('seek').value = t;
+  let idx = -1;
+  for (let i = 0; i < S.cues.length; i++) if (t >= S.cues[i].start && t < S.cues[i].end) { idx = i; break; }
+  if (idx !== S.active) {
+    const list = $('cues').children;
+    if (list[S.active]) list[S.active].classList.remove('on');
+    if (list[idx] && list[idx].classList) {
+      list[idx].classList.add('on');
+      if (!vid.paused) list[idx].scrollIntoView({ block: 'nearest' });
+    }
+    S.active = idx;
+  }
+}
+function loop() {
+  cancelAnimationFrame(raf);
+  const f = () => { drawPreview(); syncTime(); if (!vid.paused && !vid.ended) raf = requestAnimationFrame(f); };
+  raf = requestAnimationFrame(f);
+}
+$('play').addEventListener('click', () => { if (vid.paused) vid.play().catch(() => {}); else vid.pause(); });
+$('seek').addEventListener('input', e => { vid.currentTime = +e.target.value; });
+vid.addEventListener('play', () => { setPlayIcon(true); loop(); });
+vid.addEventListener('pause', () => { setPlayIcon(false); drawPreview(); syncTime(); });
+vid.addEventListener('seeked', () => { drawPreview(); syncTime(); });
+vid.addEventListener('loadeddata', drawPreview);
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on);
+    $(t.getAttribute('aria-controls')).hidden = !on;
+  });
+  if (tab.id === 'tab-out') ensureFont();
+}));
+
+/* ---------- style ---------- */
+function bindStyle() {
+  const map = { font: 'font', size: 'size', color: 'color', ocolor: 'ocolor', outline: 'outline', offset: 'offset' };
+  Object.keys(map).forEach(k => $(map[k]).addEventListener('input', async e => {
+    const v = e.target.value;
+    style[k] = (k === 'size' || k === 'outline' || k === 'offset') ? parseFloat(v) : v;
+    if (k === 'font') await ensureFont();
+    drawPreview();
+  }));
+  $('bold').addEventListener('change', async e => { style.bold = e.target.checked; await ensureFont(); drawPreview(); });
+  $('box').addEventListener('change', e => { style.box = e.target.checked; drawPreview(); });
+  document.querySelectorAll('input[name=pos]').forEach(r => r.addEventListener('change', e => { style.pos = e.target.value; drawPreview(); }));
+}
+const PRESETS = {
+  classic: { font: 'Prompt', size: 6.2, bold: true, color: '#ffffff', ocolor: '#000000', outline: 8, box: false },
+  yellow:  { font: 'Kanit', size: 6.8, bold: true, color: '#ffe14a', ocolor: '#000000', outline: 10, box: false },
+  box:     { font: 'Sarabun', size: 5.6, bold: true, color: '#ffffff', ocolor: '#000000', outline: 0, box: true }
+};
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', async () => {
+  Object.assign(style, PRESETS[b.dataset.preset]);
+  $('font').value = style.font; $('size').value = style.size; $('color').value = style.color;
+  $('ocolor').value = style.ocolor; $('outline').value = style.outline; $('bold').checked = style.bold; $('box').checked = style.box;
+  await ensureFont(); drawPreview();
+}));
+bindStyle();
+
+/* ---------- burn subtitles into video ---------- */
+function pickMime() {
+  const list = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4',
+    'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  return list.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || '';
+}
+function outSize() {
+  const target = +$('outRes').value || 1080;
+  const sc = Math.min(1, target / Math.min(S.vw, S.vh));
+  return { w: Math.max(2, Math.round(S.vw * sc / 2) * 2), h: Math.max(2, Math.round(S.vh * sc / 2) * 2) };
+}
+$('burnCancel').addEventListener('click', () => { if (S.burnCancel) S.burnCancel(); });
+
+$('burn').addEventListener('click', async () => {
+  showErr($('burnErr'), '');
+  if (!S.file) return;
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
+    showErr($('burnErr'), 'เบราว์เซอร์นี้ยังบันทึกวิดีโอจากหน้าเว็บไม่ได้ ลองใช้ Chrome (Android) หรือ Safari เวอร์ชันล่าสุด'); return;
+  }
+  const mime = pickMime();
+  if (!mime) { showErr($('burnErr'), 'เบราว์เซอร์นี้ไม่รองรับรูปแบบวิดีโอที่ต้องใช้'); return; }
+  vid.pause();
+  $('burn').disabled = true; $('result').hidden = true;
+  const { w, h } = outSize();
+  let actx = null, rec = null, wake = null, cancelled = false, finished = false;
+  const v = document.createElement('video');
+  v.playsInline = true; v.preload = 'auto';
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  const chunks = [];
+  let rafId = 0;
+  const onVis = () => { if (!document.hidden && !finished && !cancelled && v.paused && !v.ended) v.play().catch(() => {}); };
+  const cleanup = () => {
+    cancelAnimationFrame(rafId);
+    document.removeEventListener('visibilitychange', onVis);
+    try { v.pause(); } catch (_) {}
+    try { if (actx) actx.close(); } catch (_) {}
+    try { if (wake) wake.release(); } catch (_) {}
+    $('burnJob').hidden = true; $('burn').disabled = false; S.burnCancel = null;
+  };
+  try {
+    await ensureFont();
+    await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('video')); v.src = S.url; });
+    const AC = window.AudioContext || window.webkitAudioContext;
+    actx = new AC();
+    await actx.resume();
+    const src = actx.createMediaElementSource(v);
+    const dest = actx.createMediaStreamDestination();
+    src.connect(dest);
+    const stream = canvas.captureStream(30);
+    dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+    const bitrate = Math.round(Math.min(12e6, Math.max(2e6, w * h * 30 * 0.11)));
+    rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitrate, audioBitsPerSecond: 128000 });
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(res => { rec.onstop = res; });
+    try { wake = navigator.wakeLock ? await navigator.wakeLock.request('screen') : null; } catch (_) { wake = null; }
+    document.addEventListener('visibilitychange', onVis);
+
+    $('burnJob').hidden = false;
+    $('burnText').textContent = 'กำลังสร้างวิดีโอ…'; $('burnBar').style.width = '0%';
+    S.burnCancel = () => { cancelled = true; try { rec.state !== 'inactive' && rec.stop(); } catch (_) {} };
+
+    v.currentTime = 0;
+    rec.start(1000);
+    try { await v.play(); }
+    catch (_) { rec.stop(); throw new Error('play'); }
+
+    const draw = () => {
+      ctx.drawImage(v, 0, 0, w, h);
+      const cue = cueAt(v.currentTime);
+      if (cue) drawCue(ctx, cue.text, w, h);
+      const p = S.dur ? v.currentTime / S.dur : 0;
+      $('burnBar').style.width = Math.min(100, p * 100) + '%';
+      $('burnText').textContent = 'กำลังสร้างวิดีโอ ' + clock(v.currentTime) + ' / ' + clock(S.dur);
+      if (!v.ended && !cancelled) rafId = requestAnimationFrame(draw);
+    };
+    draw();
+    await new Promise(res => { v.onended = res; const t = setInterval(() => { if (cancelled) { clearInterval(t); res(); } }, 300); });
+    if (!cancelled) {
+      ctx.drawImage(v, 0, 0, w, h);
+      await new Promise(r => setTimeout(r, 400));
+    }
+    finished = true;
+    if (rec.state !== 'inactive') rec.stop();
+    await stopped;
+    cleanup();
+    if (cancelled) return;
+    const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+    const blob = new Blob(chunks, { type: mime.split(';')[0] });
+    if (S.outUrl) URL.revokeObjectURL(S.outUrl);
+    S.outUrl = URL.createObjectURL(blob);
+    S.out = { blob, name: baseName() + '_sub.' + ext };
+    $('outVideo').src = S.outUrl;
+    $('outInfo').textContent = ext.toUpperCase() + ' · ' + w + '×' + h + ' · ' + (blob.size / 1048576).toFixed(1) + ' MB' +
+      (ext === 'webm' ? ' · ไฟล์ WebM เล่นได้ในเบราว์เซอร์และแอปส่วนใหญ่ แต่แกลเลอรีบางเครื่องอาจไม่เปิด' : '');
+    $('share').hidden = !(navigator.canShare && navigator.canShare({ files: [new File([blob], S.out.name, { type: blob.type })] }));
+    $('result').hidden = false;
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) {
+    cleanup();
+    if (rec && rec.state !== 'inactive') { try { rec.stop(); } catch (_) {} }
+    showErr($('burnErr'), err.message === 'play'
+      ? 'เบราว์เซอร์ไม่อนุญาตให้เล่นอัตโนมัติ กดปุ่มสร้างวิดีโออีกครั้ง'
+      : 'สร้างวิดีโอไม่สำเร็จ ลองลดเป็น 720p หรือใช้คลิปที่สั้นลง');
+  }
+});
+$('save').addEventListener('click', () => { if (S.out) saveBlob(S.out.blob, S.out.name); });
+$('share').addEventListener('click', async () => {
+  if (!S.out) return;
+  try { await navigator.share({ files: [new File([S.out.blob], S.out.name, { type: S.out.blob.type })] }); } catch (_) {}
+});
+
+/* ---------- hosting check ---------- */
+if (/claudeusercontent|claude\.ai$/i.test(location.hostname) || location.protocol === 'file:' || location.protocol === 'blob:') {
+  $('hostWarn').hidden = false;
+}
+
+/* ---------- device capability ---------- */
+(async function init() {
+  try { S.gpu = !!(navigator.gpu && await navigator.gpu.requestAdapter()); } catch (_) { S.gpu = false; }
+  const hint = $('modelHint');
+  if (S.gpu) {
+    hint.textContent = 'เครื่องนี้ใช้การ์ดจอเร่งความเร็วได้ (WebGPU) ถอดเสียงได้เร็วขึ้นมาก';
+  } else {
+    hint.textContent = 'เครื่องนี้ไม่รองรับ WebGPU จึงใช้ CPU ซึ่งช้ากว่าเวลาจริงหลายเท่า แนะนำรุ่น "เร็ว" หรือ "สมดุล" กับคลิปสั้น';
+    const t = $('model').querySelector('option[value=turbo]');
+    t.disabled = true; t.textContent += ' · ต้องมี WebGPU';
+  }
+})();
+</script>
+</body>
+</html>
